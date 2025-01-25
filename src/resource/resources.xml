@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/app">
+    <file>application.ui</file>
+    <file>menus.ui</file>
+  </gresource>
+</gresources>

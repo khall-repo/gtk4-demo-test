@@ -1,0 +1,78 @@
+NOOB NOTES!
+
+I am trying to build one of the demo apps from the GTK4 dev package.
+Running on Raspberry Pi 5, standard Pi OS (bookworm).
+
+When you install the GTK4 dev package, it comes with a bunch of demo apps, and
+you can access those demos from your Pi "start" menu (sorry) in the Programming
+submenu.
+
+One of those demo apps is called "Application Class" which appears to be the
+simplest demo. This is the one I copied the code from, into a new C project.
+
+---------
+
+After I got the project structure and Makefile in place to build everything
+included in the demo, I just ended up with a blank window and a ton of critical
+GTK errors in the terminal window. Root cause of all of the errors is it could
+not find the application.ui and menu.ui XML files. Naturally I just went through
+application.c to find where those are being referenced and changed the paths to
+where they are located in my project structure.
+
+Well let me tell you whut..
+You can't just feed gtk_builder_add_from_resource() a path to the .ui file and
+expect that to work.. With some wailing and gnashing I figured it out..
+
+To use the example GTK .ui (XML) resources, they have to be compiled with
+glib-compile-resources and registered with the function it creates.
+
+The process is as follows.
+
+1. You have one or more legit XML resource files you want to use.
+
+2. Make another .xml file that describes what resource files you intend to use.
+This is the one I made, called resources.xml:
+
+[xml example start]
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/com/example/app">
+    <file>application.ui</file>
+    <file>menus.ui</file>
+  </gresource>
+</gresources>
+[xml example end]
+
+"/com/example/app" is not a path on your hdd, per se.. I believe it's a DBUS
+path or something like that. It's completely made up. It can probably be some-
+thing like "/ass/titties/farts". This is just the path you'll be using in your
+code to locate the resources that we're going to register.
+
+3. Compile the resources with glib-compile-resources:
+$ glib-compile-resources resources.xml --generate-source --target=resources.c
+ then do
+$ glib-compile-resources resources.xml --generate-header --target=resources.h
+
+You'll now have two source files, resources.c and resources.h. Make sure your
+Makefile compiles the .c and points to the location of the .h.
+
+4. Include resources.h in your source code file.
+
+5. In your code, before you do anything with gtk, you register the resources
+with "g_resources_register(resources_get_resource())"
+
+int main (int argc, char *argv[])
+{
+  GtkApplication *app;
+
+  g_resources_register(resources_get_resource());
+
+  ... other stuff ...
+}
+
+"resources_get_resource()" is in the source files that were generated in step
+#3.
+
+6. Build the example.
+
+7. Run the example. It should work. Should..
